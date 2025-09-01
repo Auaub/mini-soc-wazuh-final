@@ -1,0 +1,18 @@
+# Do not commit private keys
+**/*-key.pem
+**/privkey.pem
+
+# OS / Editor
+*.swp
+.DS_Store
+.vagrant/
+.env
+
+# Python
+__pycache__/
+*.pyc
+
+# Docker / build artifacts
+*.log
+node_modules/
+actions-runner/

@@ -1,0 +1,27 @@
+---
+- name: Remove the stack and optionally leave swarm
+  hosts: swarm_managers
+  become: true
+  tasks:
+    - name: Remove stack
+      community.docker.docker_stack:
+        name: "{{ stack_name }}"
+        state: absent
+
+    - name: Remove secrets
+      community.docker.docker_secret:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - tls_cert
+        - tls_key
+
+    - name: Remove config
+      community.docker.docker_config:
+        name: traefik_dynamic
+        state: absent
+
+    - name: Remove overlay network
+      community.docker.docker_network:
+        name: "{{ overlay_network }}"
+        state: absent

@@ -1,0 +1,40 @@
+tls:
+  stores:
+    default: {}
+
+  certificates:
+    - certFile: /certs/fullchain.pem
+      keyFile: /certs/privkey.pem
+
+http:
+  routers:
+    whoami:
+      rule: "Host(`whoami.soc.local`)"
+      entryPoints: ["websecure"]  # Change to websecure for HTTPS
+      service: "whoami"
+      tls: {}  # Enable TLS
+
+    wazuh-dashboard:
+      rule: "Host(`soc.local`) && PathPrefix(`/wazuh`)"
+      entryPoints: ["websecure"]  # Change to websecure for HTTPS
+      service: "wazuh-dashboard"
+      tls: {}  # Enable TLS
+      middlewares:
+        - strip-prefix
+
+  middlewares:
+    strip-prefix:
+      stripPrefix:
+        prefixes:
+          - "/wazuh"
+
+  services:
+    whoami:
+      loadBalancer:
+        servers:
+          - url: "http://wazuh_whoami:80"
+
+    wazuh-dashboard:
+      loadBalancer:
+        servers:
+          - url: "http://wazuh_wazuh_dashboard:5601"

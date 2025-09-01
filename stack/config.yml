@@ -1,0 +1,9 @@
+indexer_nodes:
+  - name: wazuh_indexer
+    ip: wazuh_indexer
+dashboard_nodes:
+  - name: wazuh_dashboard
+    ip: wazuh_dashboard
+wazuh_servers:
+  - name: wazuh_manager
+    ip: wazuh_manager

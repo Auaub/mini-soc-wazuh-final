@@ -1,0 +1,29 @@
+_meta:
+  type: "actiongroups"
+  config_version: 2
+
+ALL_ACCESS:
+  reserved: true
+  hidden: false
+  allowed_actions:
+    - "*"
+
+READ:
+  reserved: true
+  hidden: false
+  allowed_actions:
+    - "indices:data/read*"
+    - "indices:admin/mappings/get*"
+
+WRITE:
+  reserved: true
+  hidden: false
+  allowed_actions:
+    - "indices:data/write*"
+
+CLUSTER_MONITOR:
+  reserved: true
+  hidden: false
+  allowed_actions:
+    - "cluster:monitor/*"
+

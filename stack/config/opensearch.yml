@@ -1,0 +1,21 @@
+cluster.name: wazuh-cluster
+node.name: wazuh_indexer
+network.host: 0.0.0.0
+discovery.type: single-node
+bootstrap.memory_lock: true
+
+# Disable security completely
+plugins.security.disabled: true
+
+# Performance settings
+thread_pool.write.queue_size: 1000
+thread_pool.search.queue_size: 1000
+
+# Paths
+path.data: /usr/share/wazuh-indexer/data
+path.logs: /usr/share/wazuh-indexer/logs
+
+# Bind to all interfaces
+http.host: 0.0.0.0
+transport.host: 0.0.0.0
+

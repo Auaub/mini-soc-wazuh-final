@@ -1,0 +1,9 @@
+stack_name: wazuh
+domain_name: 192.168.117.135           # the hostname you will use in browser/Selenium
+https_port: 443
+http_port: 80
+overlay_network: wazuh-net
+
+# paths to your TLS certs that we'll create in Step 4
+tls_cert_file: "{{ playbook_dir }}/../../security/selfsigned/fullchain.pem"
+tls_key_file:  "{{ playbook_dir }}/../../security/selfsigned/privkey.pem"

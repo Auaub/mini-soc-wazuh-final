@@ -1,0 +1,126 @@
+version: "3.9"
+
+networks:
+  wazuh-net:
+    external: true
+
+configs:
+  traefik_dynamic_v2:
+    file: ./traefik-dynamic.yml
+
+services:
+  traefik:
+    image: traefik:v2.10
+    command:
+      - --providers.docker=true
+      - --providers.docker.swarmMode=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.file.filename=/etc/traefik/dynamic.yml
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --ping=true
+      - --ping.entrypoint=web
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - wazuh-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /home/ayoub/Desktop/mini-soc-wazuh-swarm/security/selfsigned:/certs:ro
+    configs:
+      - source: traefik_dynamic_v2
+        target: /etc/traefik/dynamic.yml
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+  wazuh_indexer:
+    image: wazuh/wazuh-indexer:4.6.0
+    environment:
+      - cluster.name=wazuh-cluster
+      - node.name=wazuh_indexer
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - opensearch.start_initial_timeout=120s
+    networks:
+      - wazuh-net
+    volumes:
+      # Mount configs
+      - ./config/opensearch.yml:/usr/share/wazuh-indexer/config/opensearch.yml:ro
+      - ./config/jvm.options:/usr/share/wazuh-indexer/config/jvm.options:ro
+
+      # Mount SSL certs (make sure filenames match!)
+      - ./config/wazuh_indexer_ssl_certs/root-ca.pem:/usr/share/wazuh-indexer/certs/root-ca.pem:ro
+      - ./config/wazuh_indexer_ssl_certs/indexer.pem:/usr/share/wazuh-indexer/certs/indexer.pem:ro
+      - ./config/wazuh_indexer_ssl_certs/indexer-key.pem:/usr/share/wazuh-indexer/certs/indexer-key.pem:ro
+      - ./config/wazuh_indexer_ssl_certs/admin.pem:/usr/share/wazuh-indexer/certs/admin.pem:ro
+      - ./config/wazuh_indexer_ssl_certs/admin-key.pem:/usr/share/wazuh-indexer/certs/admin-key.pem:ro
+
+      # Security config
+      - ./securityconfig:/usr/share/wazuh-indexer/plugins/opensearch-security/securityconfig:ro
+    ports:
+      - "9200:9200"
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 2g
+        reservations:
+          memory: 1g
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-k", "https://localhost:9200"]
+      interval: 60s
+      timeout: 30s
+      retries: 5
+      start_period: 120s
+
+  wazuh_manager:
+    image: wazuh/wazuh-manager:4.6.0
+    environment:
+      - INDEXER_URL=https://wazuh_indexer:9200
+      - INDEXER_USERNAME=admin
+      - INDEXER_PASSWORD=admin
+    networks:
+      - wazuh-net
+    volumes:
+      - ./config/wazuh_indexer_ssl_certs/root-ca.pem:/var/ossec/etc/root-ca.pem:ro
+    ports:
+      - "55000:55000"
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 1g
+        reservations:
+          memory: 512m
+
+  wazuh_dashboard:
+    image: wazuh/wazuh-dashboard:4.6.0
+    environment:
+      - OPENSEARCH_URL=https://wazuh_indexer:9200
+      - OPENSEARCH_USERNAME=admin
+      - OPENSEARCH_PASSWORD=admin
+      - WAZUH_API_URL=https://wazuh_manager:55000
+      - SERVER_BASEPATH=/wazuh
+    networks:
+      - wazuh-net
+    volumes:
+      - ./config/wazuh_indexer_ssl_certs/root-ca.pem:/usr/share/wazuh-dashboard/certs/root-ca.pem:ro
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 1g
+        reservations:
+          memory: 512m
+
+  whoami:
+    image: traefik/whoami:v1.10
+    networks:
+      - wazuh-net
+    deploy:
+      replicas: 1
+

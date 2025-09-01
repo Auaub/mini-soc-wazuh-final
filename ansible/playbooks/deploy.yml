@@ -1,0 +1,56 @@
+---
+- name: Bootstrap Swarm and deploy stack
+  hosts: swarm_managers
+
+  become: true
+  vars_files:
+    - ../group_vars/all.yml
+
+  vars:
+    stack_compose: "{{ playbook_dir }}/../../stack/wazuh-stack.yml"
+    traefik_dynamic_src: "{{ playbook_dir }}/../../stack/traefik-dynamic.yml"
+
+  tasks:
+    - name: Ensure Docker is running
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Initialize Docker Swarm (if not already)
+      community.docker.docker_swarm:
+        state: present
+        advertise_addr: "{{ ansible_default_ipv4.address | default('127.0.0.1') }}"
+
+    - name: Ensure overlay network exists
+      community.docker.docker_network:
+        name: "{{ overlay_network }}"
+        driver: overlay
+        scope: swarm
+        state: present
+
+    - name: Create/Update TLS cert secret
+      community.docker.docker_secret:
+        name: tls_cert
+        state: present
+        data_src: "{{ tls_cert_file }}"
+
+    - name: Create/Update TLS key secret
+      community.docker.docker_secret:
+        name: tls_key
+        state: present
+        data_src: "{{ tls_key_file }}"
+
+    - name: Create/Update Traefik dynamic config
+      community.docker.docker_config:
+        name: traefik_dynamic
+        state: present
+        data_src: "{{ traefik_dynamic_src }}"
+
+    - name: Deploy (or update) the stack
+      community.docker.docker_stack:
+        state: present
+        name: "{{ stack_name }}"
+        compose:
+          - "{{ stack_compose }}"
+        with_registry_auth: true

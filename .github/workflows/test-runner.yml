@@ -1,0 +1,16 @@
+name: Test Runner
+
+on: [push]
+
+jobs:
+  check-runner:
+    runs-on: self-hosted
+    steps:
+      - name: Print system info
+        run: |
+          echo "✅ Runner is working!"
+          echo "Running on: $(uname -a)"
+          echo "Docker version:"
+          docker --version
+          echo "Ansible version:"
+          ansible --version
